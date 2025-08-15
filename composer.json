@@ -1,0 +1,20 @@
+{
+  "name": "mohitech/mohipay",
+  "description": "MoHiTech Pay",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "MoHiTech\\MoHiPay\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "MoHiTech\\MoHiPay\\PayServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "dev",
+  "require": {}
+}
