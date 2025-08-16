@@ -26,7 +26,7 @@ class Payment
 
         $data = $this->postApi('/api/checkout/request', [
             "name"         => '',
-            "email"        => $email,
+            "email"        => $email ?? '',
             "phone"        => '',
             "address"      => '',
             "amount"       => $amount,
