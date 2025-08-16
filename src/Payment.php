@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Http;
 use MoHiTech\MoHiPay\Config;
 use MoHiTech\MoHiPay\Models\PaymentModel;
 use Illuminate\Support\Facades\DB;
-use InvalidArgumentException;
 use Exception;
 
 class Payment
@@ -34,7 +33,7 @@ class Payment
         ]);
 
         if (!isset($data->status, $data->payment_id, $data->payment_url, $data->amount) || $data->status !== true) {
-            throw new Exception("Payment creation failed: No valid payment ID returned from API.");
+            throw new Exception("We were unable to process your payment request. Please try again.");
         }
 
         PaymentModel::updateOrCreate(
@@ -54,7 +53,7 @@ class Payment
     {
         $payment = PaymentModel::where('transaction_id', $payment_id)->first();
         if (!$payment) {
-            throw new Exception("Invalid transaction: No payment found with ID {$payment_id}.");
+            throw new Exception("The payment could not be found. Please contact support.");
         }
 
         $data = $this->postApi('/api/checkout/verify', ['payment_id' => $payment_id]);
@@ -62,7 +61,7 @@ class Payment
         $status = $data->data->status ?? null;
 
         if (!in_array($status, [PaymentModel::STATUS_SUCCESS, PaymentModel::STATUS_FAILED])) {
-            throw new Exception("Payment verification failed: Invalid status '{$status}' received.");
+            throw new Exception("We could not verify your payment at this time. Please try again later.");
         }
         
         DB::transaction(function () use ($payment, $data, $status) {
@@ -74,7 +73,7 @@ class Payment
         });
 
         if ($status === PaymentModel::STATUS_FAILED) {
-            throw new Exception("Payment unsuccessful: Please check your details and try again.");
+            throw new Exception("Your payment was not successful. Please try again or use a different method.");
         }
 
         return $payment;
@@ -83,15 +82,15 @@ class Payment
     private function validatePaymentInputs(float $amount, string $email, string $callback_url): void
     {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception("Invalid email address: {$email}");
+            throw new Exception("Please provide a valid email address.");
         }
 
         if ($amount <= 0) {
-            throw new Exception("Amount must be greater than 0.");
+            throw new Exception("Please enter a valid amount greater than zero.");
         }
 
         if (!filter_var($callback_url, FILTER_VALIDATE_URL)) {
-            throw new Exception("Invalid callback URL: {$callback_url}");
+            throw new Exception("The provided return URL is not valid.");
         }
     }
 
@@ -105,14 +104,16 @@ class Payment
                         ->post($this->base_url . $endpoint, $payload);
 
         if (!$response->successful()) {
-            throw new Exception("API request failed with status {$response->status()}.");
+            throw new Exception("We are unable to connect to the payment server. Please try again later.");
         }
+
+        $data = $response->object();
 
         if (isset($data->status) && $data->status === false) {
-            $message = $data->message ?? 'API request returned status false.';
-            throw new Exception("API Error: {$message}");
+            $message = $data->message ?? 'The payment request was not successful.';
+            throw new Exception($message);
         }
 
-        return $response->object();
+        return $data;
     }
 }
