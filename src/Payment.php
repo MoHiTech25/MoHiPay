@@ -12,10 +12,12 @@ use Exception;
 class Payment
 {
     private string $base_url;
+    private string $api_key;
 
     public function __construct(Config $config)
     {
         $this->base_url = $config->base_url;
+        $this->api_key = $config->api_key;
     }
 
     public function createPayment(int $user_id, float $amount, string $email, string $callback_url): object
@@ -97,11 +99,20 @@ class Payment
     {
         $response = Http::acceptJson()
                         ->contentType('application/json')
+                        ->withHeaders([
+                            'x-api-key' => $this->api_key,
+                        ])
                         ->post($this->base_url . $endpoint, $payload);
 
         if (!$response->successful()) {
             throw new Exception("API request failed with status {$response->status()}.");
         }
+
+        if (isset($data->status) && $data->status === false) {
+            $message = $data->message ?? 'API request returned status false.';
+            throw new Exception("API Error: {$message}");
+        }
+
         return $response->object();
     }
 }
