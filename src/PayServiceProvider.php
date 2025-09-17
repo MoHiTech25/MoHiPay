@@ -11,9 +11,10 @@ class PayServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
 
-        if ($this->app->runningInConsole()) {
+        $target = app_path('Models/Payment.php');
+        if (!file_exists($target)) {
             $this->publishes([
-                __DIR__ . '/../Models/Payment.php' => app_path('Models/Payment.php'),
+                __DIR__ . '/../Models/Payment.php' => $target,
             ], 'mohipay-models');
 
             $this->callAfterResolving(\Illuminate\Foundation\Application::class, function () {
@@ -23,6 +24,7 @@ class PayServiceProvider extends ServiceProvider
                 ]);
             });
         }
+        
     }
 
 
